@@ -3,6 +3,8 @@ SHAP Explainability Service
 Returns top risk factors and supports waterfall chart data.
 """
 
+from os import name
+
 import pandas as pd
 import numpy as np
 import shap
@@ -55,21 +57,26 @@ def get_feature_names(model) -> List[str]:
 def explain_prediction(customer_dict: Dict[str, Any]) -> Dict[str, Any]:
     """
     Generate SHAP values for a single customer prediction.
-    
+
     Returns:
         dict with top_risk_factors (list of {feature, impact}) and waterfall_data
     """
     model = load_model(settings.MODEL_PATH)
 
     df = pd.DataFrame([customer_dict])
-    X = engineer_features(df, monthly_charges_median=settings.MONTHLY_CHARGES_MEDIAN, for_model=True)
+    X = engineer_features(
+        df,
+        monthly_charges_median=settings.MONTHLY_CHARGES_MEDIAN,
+        for_model=True
+    )
 
     try:
         explainer, preprocessor = _get_explainer(model)
+
         X_transformed = preprocessor.transform(X)
         shap_values = explainer.shap_values(X_transformed)
 
-        # For binary classification, LightGBM TreeExplainer returns list [class0, class1]
+        # Handle LightGBM binary classification output
         if isinstance(shap_values, list):
             shap_vals = shap_values[1][0]
         else:
@@ -77,20 +84,48 @@ def explain_prediction(customer_dict: Dict[str, Any]) -> Dict[str, Any]:
 
         feature_names = get_feature_names(model)
 
-        # Pair names with SHAP values
+        logger.info(f"Feature names count: {len(feature_names)}")
+        logger.info(f"SHAP values count: {len(shap_vals)}")
+
+        # Fallback if feature names extraction fails
+        if not feature_names:
+            logger.warning("Feature names empty. Using generic names.")
+            feature_names = [
+                f"feature_{i}" for i in range(len(shap_vals))
+            ]
+
         factors = []
-        for name, val in zip(feature_names, shap_vals):
-            factors.append({"feature": name, "impact": float(val)})
 
-        # Sort by absolute impact, take top N
-        factors_sorted = sorted(factors, key=lambda x: abs(x["impact"]), reverse=True)
-        top_factors = factors_sorted[: settings.SHAP_TOP_N]
+        for feature_name, value in zip(feature_names, shap_vals):
+            factors.append({
+                "feature": str(feature_name),
+                "impact": float(value)
+            })
 
-        # Waterfall data for frontend
+        logger.info(f"Factors generated: {len(factors)}")
+
+        factors_sorted = sorted(
+            factors,
+            key=lambda x: abs(x["impact"]),
+            reverse=True
+        )
+
+        top_factors = factors_sorted[:settings.SHAP_TOP_N]
+
+        base_value = explainer.expected_value
+
+        if isinstance(base_value, np.ndarray):
+            if len(base_value) > 1:
+                base_value = float(base_value[1])
+            else:
+                base_value = float(base_value[0])
+        else:
+            base_value = float(base_value)
+
         waterfall_data = {
             "features": [f["feature"] for f in factors_sorted[:15]],
             "shap_values": [f["impact"] for f in factors_sorted[:15]],
-            "base_value": float(explainer.expected_value[1]) if isinstance(explainer.expected_value, np.ndarray) else float(explainer.expected_value),
+            "base_value": base_value,
         }
 
         return {
@@ -100,16 +135,23 @@ def explain_prediction(customer_dict: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"SHAP explanation failed: {e}")
-        # Fallback: use raw feature values as proxy importance
+
         raw_factors = []
+
         for col in X.columns:
-            val = X[col].iloc[0]
             try:
-                raw_factors.append({"feature": col, "impact": float(val) * 0.01})
+                val = X[col].iloc[0]
+                raw_factors.append({
+                    "feature": col,
+                    "impact": float(val) * 0.01
+                })
             except Exception:
-                raw_factors.append({"feature": col, "impact": 0.0})
+                raw_factors.append({
+                    "feature": col,
+                    "impact": 0.0
+                })
 
         return {
-            "top_risk_factors": raw_factors[: settings.SHAP_TOP_N],
+            "top_risk_factors": raw_factors[:settings.SHAP_TOP_N],
             "waterfall_data": {},
         }
