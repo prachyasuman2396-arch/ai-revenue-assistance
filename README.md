@@ -134,7 +134,7 @@ docker run -p 8000:8000 \
 ## Render Deployment (Backend)
 
 1. Push your repository to GitHub (include `models/best_lightgbm_churn.pkl`)
-2. Create a new **Web Service** on [Render](https://render.com)
+2. Create a new **Web Service** on [Render](https://ai-revenue-assistance-1.onrender.com/docs)
 3. Connect your GitHub repo
 4. Render will auto-detect `render.yaml`
 5. Set `GROQ_API_KEY` in the **Environment** tab of the Render dashboard
@@ -150,7 +150,7 @@ docker run -p 8000:8000 \
 ## Streamlit Cloud Deployment (Frontend)
 
 1. Push your repository to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
+2. Go to [share.streamlit.io](https://prachyasuman2396-arch-ai-revenue-a-frontendstreamlit-app-5t0g1k.streamlit.app)
 3. Connect your repo, set main file to `streamlit_app.py`
 4. Add secrets in the Streamlit Cloud dashboard:
    ```toml
