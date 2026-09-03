@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,7 +16,7 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = "http://localhost:5001"
     model_name: str = "ChurnPredictor"
     model_version: str = "latest"
-    groq_api_key: str | None = None
+    groq_api_key: Optional[str] = None
     groq_model_name: str = "openai/gpt-oss-120b"
 
     model_config = SettingsConfigDict(
