@@ -125,7 +125,21 @@ python ml/training/train.py
 
 # 6. Start API Service in Docker
 echo "⚡ Building and starting FastAPI container..."
-sudo docker compose up -d --build api
+
+# Upgrade buildx plugin for Amazon Linux if needed
+if ! docker buildx version 2>/dev/null | grep -q 'v0\.\(1[7-9]\|[2-9]\)'; then
+    echo "🐳 Ensuring Docker Buildx plugin is up to date..."
+    sudo mkdir -p /usr/local/lib/docker/cli-plugins
+    sudo curl -fsSL "https://github.com/docker/buildx/releases/download/v0.21.1/buildx-v0.21.1.linux-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-buildx 2>/dev/null || true
+    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx 2>/dev/null || true
+fi
+
+# Build image directly with Docker to guarantee zero buildx version mismatch
+echo "🔨 Building API container image directly with Docker..."
+sudo docker build -t ai-revenue-assistance-api:latest .
+
+# Start API service with Docker Compose
+sudo docker compose up -d api
 
 echo "======================================================================"
 echo "🎉 Deployment Complete!"

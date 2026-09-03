@@ -23,6 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ai-revenue-assistance-api:latest
     container_name: ai_revenue_api
     restart: unless-stopped
     env_file: .env
