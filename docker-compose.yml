@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai_revenue_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: revenue_ai
+      POSTGRES_USER: revenue_user
+      POSTGRES_PASSWORD: revenue_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revenue_user -d revenue_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revenue_net
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_revenue_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_NAME: "AI Revenue Assistance"
+      APP_ENV: "production"
+      PORT: 8000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: revenue_ai
+      POSTGRES_USER: revenue_user
+      POSTGRES_PASSWORD: revenue_password
+      DATABASE_URL: "postgresql+psycopg://revenue_user:revenue_password@postgres:5432/revenue_ai"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MODEL_NAME: "ChurnPredictor"
+      MODEL_VERSION: "latest"
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      GROQ_MODEL_NAME: "${GROQ_MODEL_NAME:-openai/gpt-oss-120b}"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./models:/app/models
+      - ./mlruns:/mlflow/mlruns
+      - ./mlflow.db:/mlflow/mlflow.db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow:
+        condition: service_healthy
+    networks:
+      - revenue_net
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.15.2
+    container_name: ai_revenue_mlflow
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+      - ./mlflow.db:/mlflow/mlflow.db
+    command: mlflow server --backend-store-uri sqlite:////mlflow/mlflow.db --artifacts-destination /mlflow/mlruns --host 0.0.0.0 --port 5000 --allowed-hosts "*" --cors-allowed-origins "*"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revenue_net
+
+volumes:
+  postgres_data:
+
+networks:
+  revenue_net:
+    driver: bridge

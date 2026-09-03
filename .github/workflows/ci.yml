@@ -1,0 +1,100 @@
+name: Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-test:
+    name: Code Quality & Automated Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: revenue_ai
+          POSTGRES_USER: revenue_user
+          POSTGRES_PASSWORD: revenue_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Ruff Linter
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Initialize Database Schema & Ingestion
+        env:
+          DATABASE_URL: postgresql+psycopg://revenue_user:revenue_password@localhost:5432/revenue_ai
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: revenue_ai
+          POSTGRES_USER: revenue_user
+          POSTGRES_PASSWORD: revenue_password
+        run: |
+          python backend/app/db/create_tables.py
+          python scripts/ingest_data.py
+          python ml/data/clean_data.py
+
+      - name: Run Pytest Suite
+        env:
+          DATABASE_URL: postgresql+psycopg://revenue_user:revenue_password@localhost:5432/revenue_ai
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+        run: |
+          pytest -v --durations=10
+
+  docker-build-and-smoke:
+    name: Docker Containerization & Smoke Test
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ai-revenue-assistance:latest .
+
+      - name: Execute Container Smoke Test
+        run: |
+          docker run -d --name test_api -p 8000:8000 \
+            -e APP_NAME="AI Revenue Assistance Smoke" \
+            -e APP_ENV="test" \
+            -e DATABASE_URL="sqlite:///test.db" \
+            ai-revenue-assistance:latest
+          
+          # Allow container 5 seconds to initialize
+          sleep 5
+          
+          # Probe health endpoint
+          curl --fail --retry 5 --retry-delay 2 http://localhost:8000/api/health || (docker logs test_api && exit 1)
+          
+          # Clean up container
+          docker stop test_api && docker rm test_api

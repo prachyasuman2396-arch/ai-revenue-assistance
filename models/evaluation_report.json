@@ -1,0 +1,101 @@
+{
+  "test_population": 1057,
+  "test_churn_count": 281,
+  "test_churn_rate_pct": 26.58,
+  "overall_metrics": {
+    "roc_auc": 0.8413,
+    "pr_auc": 0.665,
+    "brier_score": 0.1374,
+    "f1_score": 0.5923,
+    "precision": 0.6887,
+    "recall": 0.5196
+  },
+  "confusion_matrix_at_0_5": {
+    "true_negatives": 710,
+    "false_positives": 66,
+    "false_negatives": 135,
+    "true_positives": 146
+  },
+  "threshold_tradeoffs": [
+    {
+      "threshold": 0.3,
+      "precision": 0.5352,
+      "recall": 0.758,
+      "f1": 0.6274,
+      "true_positives": 213,
+      "false_positives": 185,
+      "false_negatives": 68,
+      "true_negatives": 591
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.586,
+      "recall": 0.6548,
+      "f1": 0.6185,
+      "true_positives": 184,
+      "false_positives": 130,
+      "false_negatives": 97,
+      "true_negatives": 646
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.6887,
+      "recall": 0.5196,
+      "f1": 0.5923,
+      "true_positives": 146,
+      "false_positives": 66,
+      "false_negatives": 135,
+      "true_negatives": 710
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.7444,
+      "recall": 0.3523,
+      "f1": 0.4783,
+      "true_positives": 99,
+      "false_positives": 34,
+      "false_negatives": 182,
+      "true_negatives": 742
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.84,
+      "recall": 0.1495,
+      "f1": 0.2538,
+      "true_positives": 42,
+      "false_positives": 8,
+      "false_negatives": 239,
+      "true_negatives": 768
+    }
+  ],
+  "calibration_curve": {
+    "bin_mean_predicted_prob": [
+      0.0647,
+      0.2878,
+      0.4968,
+      0.6736,
+      0.815
+    ],
+    "bin_empirical_fraction_positives": [
+      0.0801,
+      0.2621,
+      0.4696,
+      0.7385,
+      1.0
+    ]
+  },
+  "error_analysis": {
+    "false_positive_count": 66,
+    "false_positive_characteristics": {
+      "avg_monthly_charges": 79.54,
+      "avg_tenure": 13.1,
+      "pct_month_to_month": 100.0
+    },
+    "false_negative_count": 135,
+    "false_negative_characteristics": {
+      "avg_monthly_charges": 66.35,
+      "avg_tenure": 26.1,
+      "pct_month_to_month": 70.37
+    }
+  }
+}

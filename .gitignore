@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments & Packages
+.venv/
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Secrets and Local Configurations (CRITICAL)
+.env
+*.env.local
+*.pem
+*.key
+
+# MLOps & Experiment Tracking Caches
+mlruns/
+mlartifacts/
+.mlflow/
+*.db
+mlflow.db
+postgres_data/
+
+# Testing & Quality
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# OS & IDE Metadata
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# Local artifacts cache
+models/*.pkl
+models/*.joblib
+!models/.gitkeep
