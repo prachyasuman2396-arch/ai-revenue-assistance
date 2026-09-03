@@ -120,14 +120,22 @@ def train_models() -> Pipeline:
         ),
     }
 
-    # Configure MLflow tracking
     tracking_uri = settings.get_resolved_tracking_uri()
     if tracking_uri.startswith("http://") or tracking_uri.startswith("https://"):
+        import time
         import urllib.request
-        try:
-            urllib.request.urlopen(f"{tracking_uri}/health", timeout=3)
-            logger.info(f"Connected to MLflow Tracking Server: {tracking_uri}")
-        except Exception:
+        connected = False
+        for attempt in range(12):
+            try:
+                urllib.request.urlopen(f"{tracking_uri}/health", timeout=3)
+                logger.info(f"Connected to MLflow Tracking Server: {tracking_uri}")
+                connected = True
+                break
+            except Exception:
+                logger.info(f"Waiting for MLflow server at {tracking_uri} (attempt {attempt + 1}/12)...")
+                time.sleep(2)
+
+        if not connected:
             local_sqlite = f"sqlite:///{BASE_DIR / 'mlflow.db'}"
             logger.warning(
                 f"MLflow server at {tracking_uri} unreachable. Falling back to local SQLite: {local_sqlite}"

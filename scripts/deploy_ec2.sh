@@ -78,8 +78,19 @@ fi
 echo "🐘 Starting PostgreSQL and MLflow containers..."
 sudo docker compose up -d postgres mlflow
 
-echo "⏳ Waiting 12s for MLflow and PostgreSQL to become healthy..."
-sleep 12
+echo "⏳ Waiting for MLflow server to be healthy on http://localhost:5001..."
+for i in {1..30}; do
+    if curl -s http://localhost:5001/health > /dev/null 2>&1; then
+        echo "✅ MLflow server is ready and responding!"
+        break
+    fi
+    echo "Waiting for MLflow server image & container to start (attempt $i/30)..."
+    sleep 3
+done
+
+# Ensure current user owns project files and directories created by docker
+sudo chown -R "$USER":"$USER" .
+sudo chmod -R 775 models mlruns 2>/dev/null || true
 
 # 5. Setup Python virtual environment & train champion model
 echo "🐍 Setting up Python environment for champion model training..."
