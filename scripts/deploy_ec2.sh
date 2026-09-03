@@ -74,15 +74,12 @@ if [ ! -f ".env" ]; then
     cp .env.example .env
 fi
 
-# Ensure mlflow.db is a file, not a directory created by Docker
-if [ -d "mlflow.db" ]; then
-    echo "⚠️ Removing incorrect mlflow.db directory..."
+# Clean up previous containers and ensure clean directories
+echo "🧹 Resetting containers and setting directory permissions..."
+sudo docker compose down 2>/dev/null || true
+if [ -e "mlflow.db" ]; then
     sudo rm -rf mlflow.db
 fi
-if [ ! -f "mlflow.db" ]; then
-    touch mlflow.db
-fi
-sudo chmod 666 mlflow.db
 mkdir -p models mlruns
 sudo chmod -R 777 models mlruns
 
@@ -110,7 +107,6 @@ fi
 
 # Ensure current user owns project files and directories
 sudo chown -R "$USER":"$USER" .
-sudo chmod 666 mlflow.db
 sudo chmod -R 777 models mlruns 2>/dev/null || true
 
 # 5. Setup Python virtual environment & train champion model

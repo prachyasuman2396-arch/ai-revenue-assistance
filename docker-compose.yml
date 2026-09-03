@@ -47,7 +47,6 @@ services:
       - ./backend:/app/backend
       - ./models:/app/models
       - ./mlruns:/mlflow/mlruns
-      - ./mlflow.db:/mlflow/mlflow.db
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,8 +63,7 @@ services:
       - "5001:5000"
     volumes:
       - ./mlruns:/mlflow/mlruns
-      - ./mlflow.db:/mlflow/mlflow.db
-    command: mlflow server --backend-store-uri sqlite:////mlflow/mlflow.db --artifacts-destination /mlflow/mlruns --host 0.0.0.0 --port 5000 --allowed-hosts "*" --cors-allowed-origins "*"
+    command: mlflow server --backend-store-uri sqlite:////mlflow/mlruns/mlflow.db --artifacts-destination /mlflow/mlruns --host 0.0.0.0 --port 5000 --allowed-hosts "*" --cors-allowed-origins "*"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
       interval: 5s
