@@ -136,7 +136,13 @@ def train_models() -> Pipeline:
                 time.sleep(2)
 
         if not connected:
-            local_sqlite = f"sqlite:///{BASE_DIR / 'mlflow.db'}"
+            db_path = BASE_DIR / "mlflow.db"
+            if db_path.is_dir():
+                import shutil
+                shutil.rmtree(db_path)
+            if not db_path.exists():
+                db_path.touch()
+            local_sqlite = f"sqlite:///{db_path}"
             logger.warning(
                 f"MLflow server at {tracking_uri} unreachable. Falling back to local SQLite: {local_sqlite}"
             )

@@ -68,29 +68,50 @@ elif command -v apt-get &> /dev/null; then
     fi
 fi
 
-# 3. Create .env if missing
+# 3. Create .env if missing and ensure clean file structures
 if [ ! -f ".env" ]; then
     echo "⚙️ Creating .env from .env.example..."
     cp .env.example .env
 fi
+
+# Ensure mlflow.db is a file, not a directory created by Docker
+if [ -d "mlflow.db" ]; then
+    echo "⚠️ Removing incorrect mlflow.db directory..."
+    sudo rm -rf mlflow.db
+fi
+if [ ! -f "mlflow.db" ]; then
+    touch mlflow.db
+fi
+sudo chmod 666 mlflow.db
+mkdir -p models mlruns
+sudo chmod -R 777 models mlruns
 
 # 4. Start Infrastructure (PostgreSQL & MLflow)
 echo "🐘 Starting PostgreSQL and MLflow containers..."
 sudo docker compose up -d postgres mlflow
 
 echo "⏳ Waiting for MLflow server to be healthy on http://localhost:5001..."
-for i in {1..30}; do
+MLFLOW_READY=false
+for i in {1..35}; do
     if curl -s http://localhost:5001/health > /dev/null 2>&1; then
         echo "✅ MLflow server is ready and responding!"
+        MLFLOW_READY=true
         break
     fi
-    echo "Waiting for MLflow server image & container to start (attempt $i/30)..."
+    echo "Waiting for MLflow server image & container to start (attempt $i/35)..."
     sleep 3
 done
 
-# Ensure current user owns project files and directories created by docker
+if [ "$MLFLOW_READY" = false ]; then
+    echo "❌ MLflow container failed to report healthy. Container logs:"
+    sudo docker logs ai_revenue_mlflow --tail 25
+    exit 1
+fi
+
+# Ensure current user owns project files and directories
 sudo chown -R "$USER":"$USER" .
-sudo chmod -R 775 models mlruns 2>/dev/null || true
+sudo chmod 666 mlflow.db
+sudo chmod -R 777 models mlruns 2>/dev/null || true
 
 # 5. Setup Python virtual environment & train champion model
 echo "🐍 Setting up Python environment for champion model training..."
