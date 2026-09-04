@@ -72,9 +72,9 @@ elif command -v apt-get &> /dev/null; then
     fi
 fi
 
-# 3. Create .env if missing and ensure clean file structures
-if [ ! -f ".env" ]; then
-    echo "⚙️ Creating .env from .env.example..."
+# 3. Create .env if missing or contains placeholder tokens
+if [ ! -f ".env" ] || grep -q "<DB_PORT>" .env; then
+    echo "⚙️ Creating valid .env from .env.example..."
     cp .env.example .env
 fi
 
