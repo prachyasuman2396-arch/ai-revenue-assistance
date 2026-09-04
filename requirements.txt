@@ -17,3 +17,4 @@ langchain-core>=0.3.0
 langchain-groq>=0.2.0
 pytest>=8.0.0
 ruff>=0.3.0
+eval-type-backport>=0.2.0
