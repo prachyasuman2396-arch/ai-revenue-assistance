@@ -393,12 +393,16 @@ with tab_simulator:
                             if risk_factors:
                                 st.markdown("**Escalating Risk Drivers (Pushing Score Up):**")
                                 for rf in risk_factors:
-                                    st.markdown(f"🔴 **{rf['feature']}**: {rf['business_insight']}")
+                                    desc = rf.get("description") or rf.get("business_insight") or "Contributes to flight probability."
+                                    score = f" (+{rf['attribution_score']})" if "attribution_score" in rf else ""
+                                    st.markdown(f"🔴 **{rf.get('feature', 'Factor')}**{score}: {desc}")
 
                             if prot_factors:
                                 st.markdown("**Protective Factors (Shielding Account):**")
                                 for pf in prot_factors:
-                                    st.markdown(f"🟢 **{pf['feature']}**: {pf['business_insight']}")
+                                    desc = pf.get("description") or pf.get("business_insight") or "Fosters customer loyalty."
+                                    score = f" ({pf['attribution_score']})" if "attribution_score" in pf else ""
+                                    st.markdown(f"🟢 **{pf.get('feature', 'Factor')}**{score}: {desc}")
 
                         # Row 3: Prescriptive Retention Strategy
                         st.divider()
