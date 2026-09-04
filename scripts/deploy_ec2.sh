@@ -10,16 +10,20 @@ echo "======================================================================"
 echo "🚀 Starting AI Revenue Assistance Deployment on AWS EC2"
 echo "======================================================================"
 
-# 1. Setup 2GB Swap space if memory is under 3GB (prevents OOM during build)
+# 1. Reclaim disk space and manage swap efficiently on small 8GB root disks
+echo "🧹 Reclaiming disk space and cleaning package caches..."
+sudo swapoff -a 2>/dev/null || true
+sudo rm -f /swapfile 2>/dev/null || true
+sudo docker system prune -f 2>/dev/null || true
+sudo docker builder prune -af 2>/dev/null || true
+
 TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
-SWAP_EXISTS=$(free -m | awk '/^Swap:/{print $2}')
-if [ "$TOTAL_MEM" -lt 3000 ] && [ "$SWAP_EXISTS" -eq 0 ]; then
-    echo "💾 Configuring 2GB swap space for compilation and Docker build..."
-    sudo dd if=/dev/zero of=/swapfile bs=128M count=16
+if [ "$TOTAL_MEM" -lt 2000 ]; then
+    echo "💾 Creating lightweight 512MB swap file..."
+    sudo dd if=/dev/zero of=/swapfile bs=64M count=8 2>/dev/null || true
     sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
-    echo "✅ Swap enabled."
+    sudo mkswap /swapfile 2>/dev/null || true
+    sudo swapon /swapfile 2>/dev/null || true
 fi
 
 # 2. Detect OS and install Docker + Git + Python

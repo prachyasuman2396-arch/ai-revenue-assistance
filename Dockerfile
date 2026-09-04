@@ -8,16 +8,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system runtime dependencies
+# Install lightweight system runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies
+# Install python dependencies with lean footprint (use mlflow-skinny, omit dev tools)
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN sed -i '/pytest/d; /ruff/d; s/mlflow>=/mlflow-skinny>=/' requirements.txt && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application source code and models
