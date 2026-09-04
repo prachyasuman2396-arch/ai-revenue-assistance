@@ -127,23 +127,42 @@ echo "🧠 Training Champion Model and registering into MLflow..."
 export PYTHONPATH=.
 python ml/training/train.py
 
-# 6. Start API Service in Docker
-echo "⚡ Building and starting FastAPI container..."
+# 6. Start API Service via systemd daemon (zero disk duplication, auto-restart)
+echo "⚡ Configuring and starting FastAPI systemd production service..."
+CURRENT_DIR="$(pwd)"
+CURRENT_USER="$(whoami)"
 
-# Upgrade buildx plugin for Amazon Linux if needed
-if ! docker buildx version 2>/dev/null | grep -q 'v0\.\(1[7-9]\|[2-9]\)'; then
-    echo "🐳 Ensuring Docker Buildx plugin is up to date..."
-    sudo mkdir -p /usr/local/lib/docker/cli-plugins
-    sudo curl -fsSL "https://github.com/docker/buildx/releases/download/v0.21.1/buildx-v0.21.1.linux-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-buildx 2>/dev/null || true
-    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx 2>/dev/null || true
-fi
+sudo bash -c "cat <<EOF > /etc/systemd/system/ai-revenue-api.service
+[Unit]
+Description=AI Revenue Assistance Production FastAPI Service
+After=network.target docker.service
 
-# Build image directly with Docker to guarantee zero buildx version mismatch
-echo "🔨 Building API container image directly with Docker..."
-sudo docker build -t ai-revenue-assistance-api:latest .
+[Service]
+Type=simple
+User=${CURRENT_USER}
+WorkingDirectory=${CURRENT_DIR}
+Environment=\"PYTHONPATH=${CURRENT_DIR}\"
+ExecStart=${CURRENT_DIR}/.venv/bin/uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
 
-# Start API service with Docker Compose
-sudo docker compose up -d api
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now ai-revenue-api.service
+sudo systemctl restart ai-revenue-api.service
+
+# Verify API health
+echo "⏳ Verifying FastAPI health..."
+for i in {1..15}; do
+    if curl -s http://localhost:8000/api/health > /dev/null 2>&1; then
+        echo "✅ FastAPI service is healthy and responding on port 8000!"
+        break
+    fi
+    sleep 2
+done
 
 echo "======================================================================"
 echo "🎉 Deployment Complete!"
