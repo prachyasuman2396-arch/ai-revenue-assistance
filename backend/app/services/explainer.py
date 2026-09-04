@@ -124,7 +124,7 @@ class ChurnExplainer:
 
         # Pair feature names with contributions
         clean_names = [name.split("__")[-1] for name in self._feature_names]
-        feature_impacts = list(zip(clean_names, contributions, x_row, strict=False))
+        feature_impacts = list(zip(clean_names, contributions, x_row))
 
         # Sort into positive (risk increasing) and negative (risk decreasing)
         risk_factors = [
